@@ -17,6 +17,8 @@ module.exports = function (givenImagesPath) {
             }
         }
 
+        file.inlinedImagesMetaData = [];
+
         // Do nothing if no contents
         if (file.isNull()) {
             this.push(file);
@@ -30,9 +32,18 @@ module.exports = function (givenImagesPath) {
         }
 
         function inline (inlineExpr, quotedPath) {
-            var imagePath = quotedPath.replace(/['"]/g, '');
+            var imagePath = quotedPath.replace(/['"]/g, ''),
+                dimensionParser = require('imagesize').Parser,
+                parserInstance = dimensionParser(),
+                fileData;
+
             try {
-                var fileData = fs.readFileSync(path.join(imagesPath, imagePath));
+                fileData = fs.readFileSync(path.join(imagesPath, imagePath));
+                if (parserInstance.parse(fileData) === dimensionParser.DONE) {
+                  var metaDataResult = parserInstance.getResult();
+                  metaDataResult.name = imagePath;
+                  file.inlinedImagesMetaData.push(metaDataResult);
+                }
             }
             catch (e) {
                 gutil.log(gutil.colors.yellow('base64-inline'), 'Referenced file not found: ' + path.join(imagesPath, imagePath));
